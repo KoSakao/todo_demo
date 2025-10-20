@@ -40,6 +40,58 @@ function App() {
     }
   }
 
+  const exportToMarkdown = () => {
+    const markdown = todos.map(todo => 
+      `- [${todo.completed ? 'x' : ' '}] ${todo.text}`
+    ).join('\n')
+    
+    const blob = new Blob([markdown], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'todos.md'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const importFromMarkdown = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.md,.markdown,.txt'
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const content = event.target?.result as string
+        const lines = content.split('\n')
+        
+        const importedTodos: Todo[] = []
+        lines.forEach(line => {
+          const match = line.match(/^-\s*\[([ x])\]\s*(.+)$/)
+          if (match) {
+            importedTodos.push({
+              id: Date.now() + Math.random(),
+              text: match[2].trim(),
+              completed: match[1] === 'x'
+            })
+          }
+        })
+        
+        if (importedTodos.length > 0) {
+          setTodos([...todos, ...importedTodos])
+        }
+      }
+      reader.readAsText(file)
+    }
+    
+    input.click()
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
@@ -107,6 +159,22 @@ function App() {
               合計: {todos.length} タスク | 完了: {todos.filter(t => t.completed).length} | 
               未完了: {todos.filter(t => !t.completed).length}
             </p>
+          </div>
+
+          <div className="mt-4 flex gap-2 justify-center">
+            <button
+              onClick={exportToMarkdown}
+              disabled={todos.length === 0}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              エクスポート
+            </button>
+            <button
+              onClick={importFromMarkdown}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium"
+            >
+              インポート
+            </button>
           </div>
         </div>
       </div>
